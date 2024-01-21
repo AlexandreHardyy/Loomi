@@ -24,6 +24,12 @@ export class UsersService {
     });
   }
 
+  async findOneByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+    });
+  }
+
   async create(user: CreateUserDto) {
     const { password, ...userData } = user;
     const hashedPassword = await this.hashPassword(password);

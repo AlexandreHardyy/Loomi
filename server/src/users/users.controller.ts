@@ -25,7 +25,6 @@ export class UsersController {
   @ApiOkResponse({ type: UserEntity, isArray: true })
   async findAll(): Promise<UserEntity[]> {
     const users = await this.usersService.findAll();
-    console.log(await this.usersService.findAll());
     return users.map((user) => new UserEntity(user));
   }
 
