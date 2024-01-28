@@ -5,7 +5,11 @@ const Header = () => {
   return (
     <header className={"py-4 px-8 flex justify-between bg-secondary"}>
       <h1>Loomi</h1>
-      <nav></nav>
+      <nav>
+        <Button variant={"link"} asChild>
+          <Link href={"/profile/quizzes"}>My quiz</Link>
+        </Button>
+      </nav>
       <div className={"flex gap-3"}>
         <Button asChild>
           <Link href={"/auth/login"}>LOGIN</Link>
