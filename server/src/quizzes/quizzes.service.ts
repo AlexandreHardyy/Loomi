@@ -21,6 +21,9 @@ export class QuizzesService {
   async findOne(id: number) {
     return this.prisma.quiz.findUnique({
       where: { id },
+      include: {
+        questions: true,
+      },
     });
   }
 
