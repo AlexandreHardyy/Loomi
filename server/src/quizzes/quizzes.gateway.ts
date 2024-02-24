@@ -15,7 +15,12 @@ import {
   JoinPartyDataInterface,
 } from './interface/party.interface';
 
-@WebSocketGateway()
+@WebSocketGateway({
+  cors: {
+    origin: '*',
+    credentials: true,
+  },
+})
 export class QuizzesGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
@@ -60,7 +65,11 @@ export class QuizzesGateway
 
     this.parties.set(party.id, party);
 
-    return { status: 'created', partyId: party.id };
+    return {
+      status: 'created',
+      partyId: party.id,
+      players: Object.fromEntries(party.players),
+    };
   }
 
   @SubscribeMessage('join-party')
@@ -74,12 +83,18 @@ export class QuizzesGateway
     if (party) {
       party.joinTheParty(player);
       client.join(party.id);
-      client.broadcast.to(party.id).emit('player-joined', player);
+      client.broadcast
+        .to(party.id)
+        .emit('player-joined', { players: Object.fromEntries(party.players) });
       this.usersInParties.set(client.id, party.id);
     } else {
       return { status: 'not-found' };
     }
 
-    return { status: 'joined' };
+    return {
+      status: 'joined',
+      partyId: party.id,
+      players: Object.fromEntries(party.players),
+    };
   }
 }

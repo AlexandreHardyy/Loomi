@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import axios from "axios";
 import {
   Card,
   CardContent,
@@ -9,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { QuizInterface } from "@/interface/quiz.interface";
+import axios from "axios";
 import Link from "next/link";
 
 const Page = async () => {
@@ -17,8 +17,8 @@ const Page = async () => {
   if (!quizzes) return <div>No quizzes</div>;
 
   return (
-    <div className={"flex flex-col gap-3"}>
-      <h1 className={"text-3xl font-bold"}>My Quizzes</h1>
+    <div className={"flex flex-col gap-3 m-10"}>
+      <h1 className={"text-3xl font-bold"}>My Quizzles</h1>
       <div>
         <Button asChild>
           <Link href={"/profile/quizzes/new-quiz"}>Create new quiz</Link>
@@ -39,7 +39,9 @@ const Page = async () => {
           </CardContent>
           <CardFooter>
             <div className={"flex gap-2"}>
-              <Button>Start</Button>
+              <Button asChild>
+                <Link href={"/lobby"}>Start</Link>
+              </Button>
               <Button>Edit</Button>
               <Button variant={"destructive"}>Delete</Button>
             </div>
