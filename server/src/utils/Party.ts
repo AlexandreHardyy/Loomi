@@ -8,6 +8,8 @@ export class Party {
   actualQuestion = 0;
   messages = new Map<string, Player>();
   timer: NodeJS.Timeout | null = null;
+  votes = new Map<string, boolean>();
+  newTimer: string | null = null;
 
   constructor() {}
 

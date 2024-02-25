@@ -61,7 +61,7 @@ export class QuizzesGateway
   ) {
     const party = new Party();
     party.quiz = await this.quizzesService.findOne(1);
-    const player = new Player(data.username, client.id, false);
+    const player = new Player(data.username, client.id, false, true);
     party.joinTheParty(player);
     client.join(party.id);
     this.usersInParties.set(client.id, party.id);
@@ -227,6 +227,44 @@ export class QuizzesGateway
       return {
         messages: Object.fromEntries(party.messages),
       };
+    } else {
+      return { status: 'not-found' };
+    }
+  }
+
+  @SubscribeMessage('change-time-for-next-question')
+  handleChangeTimeForNextQuestion(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: any,
+  ) {
+    const party = this.parties.get(this.usersInParties.get(client.id) ?? '');
+    if (party) {
+      party.newTimer = data.timeInSeconds;
+      party.votes.set(client.id, true);
+      this.server.to(party.id).emit('launch-vote-new-time', data.timeInSeconds);
+    } else {
+      return { status: 'not-found' };
+    }
+  }
+
+  @SubscribeMessage('vote-new-time')
+  handleVoteNewTime(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: any,
+  ) {
+    const party = this.parties.get(this.usersInParties.get(client.id) ?? '');
+    if (party) {
+      party.votes.set(client.id, data.vote);
+      if (party.votes.size === party.players.size) {
+        const trueVotes = Array.from(party.votes.values()).filter(
+          (vote) => vote === true,
+        ).length;
+        if (trueVotes > party.players.size / 2) {
+          party.quiz.questions[party.actualQuestion + 1].timeInSeconds =
+            party.newTimer;
+          this.server.to(party.id).emit('time-changed');
+        }
+      }
     } else {
       return { status: 'not-found' };
     }

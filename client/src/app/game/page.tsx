@@ -4,11 +4,12 @@ import GameStartSoon from "@/components/GameStartSoon";
 import QuestionStartSoon from "@/components/QuestionStartSoon";
 import Result from "@/components/Result";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { QuestionInterface } from "@/interface/question.interface";
 import socket from "@/lib/socket";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 const Game = () => {
   const [question, setQuestion] = useState<QuestionInterface>();
@@ -20,8 +21,10 @@ const Game = () => {
   const [result, setResult] = useState();
   const [ready, setReady] = useState(false);
   const [readyComponent, setReadyComponent] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
+  const [timer, setTimer] = useState<number>();
+  const [voteProposition, setVoteProposition] = useState(false);
+  const [newTimer, setNewTimer] = useState<string>();
+  const [intervalValue, setIntervalValue] = useState<any>();
   const router = useRouter();
 
   useEffect(() => {
@@ -34,12 +37,32 @@ const Game = () => {
       setReadyComponent(true);
     });
 
+    socket.on("time-changed", () => {
+      toast.warning("Le timer pour la prochaine question a été changé");
+    });
+
+    socket.on("launch-vote-new-time", (data: any) => {
+      setVoteProposition(true);
+    });
+
     socket.on("next-question", (data: any) => {
+      if (intervalValue) clearInterval(intervalValue);
+
       setQuestion(data.question);
       setAlreadyAnswered(false);
       setSelectedResponse([]);
       setReadyComponent(false);
-      setupTimer(data.question.timeInSeconds);
+      setTimer(data.question.timeInSeconds);
+      const interval = setInterval(() => {
+        setTimer((prevTimer: any) => {
+          if (prevTimer === 0) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prevTimer - 1;
+        });
+      }, 1000);
+      setIntervalValue(interval);
     });
 
     socket.on("game-finished", (data: any) => {
@@ -61,23 +84,10 @@ const Game = () => {
       socket.off("game-finished");
       socket.off("player-answered");
       socket.off("get-ready-question");
+      socket.off("time-changed");
+      socket.off("vote-new-time");
     };
   }, [router]);
-
-  const setupTimer = (timeInSeconds: number) => {
-    setProgress(0);
-    const newTimer = setInterval(() => {
-      setProgress((prevProgress) => {
-        if (prevProgress >= 100) {
-          clearInterval(newTimer);
-          return 100;
-        }
-        return prevProgress + 100 / timeInSeconds;
-      });
-    }, 1000);
-
-    setTimer(newTimer);
-  };
 
   const handleResponse = () => {
     if (!alreadyAnswered) {
@@ -122,8 +132,51 @@ const Game = () => {
               ),
             )}
           </div>
-          <Progress value={progress} />
           <Button onClick={handleResponse}>Play</Button>
+          <div>{timer}</div>
+          <div className="flex gap-2">
+            <Input
+              onChange={(event) => {
+                setNewTimer(event.target.value);
+              }}
+              value={newTimer}
+              type="text"
+              placeholder="Set a new timer"
+            />
+            <Button
+              onClick={() => {
+                socket.emit("change-time-for-next-question", {
+                  timeInSeconds: Number(newTimer),
+                });
+              }}
+            >
+              Proposer un nouveau timer pour la prochaine question
+            </Button>
+            {voteProposition && (
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant={"outline"}
+                  onClick={() => {
+                    socket.emit("vote-new-time", { vote: true });
+                    setVoteProposition(false);
+                    setNewTimer("");
+                  }}
+                >
+                  Voter pour le nouveau timer
+                </Button>
+                <Button
+                  variant={"destructive"}
+                  onClick={() => {
+                    socket.emit("vote-new-time", { vote: false });
+                    setVoteProposition(false);
+                    setNewTimer("");
+                  }}
+                >
+                  Voter contre le nouveau timer
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
         <>

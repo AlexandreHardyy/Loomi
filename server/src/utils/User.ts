@@ -3,6 +3,7 @@ export class Player {
     public username: string,
     public id: string,
     public ready: boolean = false,
+    public isHost: boolean = false,
     public score: number = 0,
   ) {}
 
