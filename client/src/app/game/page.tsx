@@ -1,7 +1,10 @@
 "use client";
 
+import GameStartSoon from "@/components/GameStartSoon";
+import QuestionStartSoon from "@/components/QuestionStartSoon";
 import Result from "@/components/Result";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { QuestionInterface } from "@/interface/question.interface";
 import socket from "@/lib/socket";
 import { useRouter } from "next/navigation";
@@ -15,15 +18,28 @@ const Game = () => {
   const [selectedResponse, setSelectedResponse] = useState<string[]>([]);
   const [gameisFinished, setGameisFinished] = useState(false);
   const [result, setResult] = useState();
+  const [ready, setReady] = useState(false);
+  const [readyComponent, setReadyComponent] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [timer, setTimer] = useState<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    socket.emit("ready-for-game");
+    setTimeout(() => {
+      socket.emit("ready-for-game");
+      setReady(true);
+    }, 5000);
+
+    socket.on("get-ready-question", () => {
+      setReadyComponent(true);
+    });
 
     socket.on("next-question", (data: any) => {
       setQuestion(data.question);
       setAlreadyAnswered(false);
       setSelectedResponse([]);
+      setReadyComponent(false);
+      setupTimer(data.question.timeInSeconds);
     });
 
     socket.on("game-finished", (data: any) => {
@@ -43,8 +59,25 @@ const Game = () => {
       socket.off("all-players-ready");
       socket.off("next-question");
       socket.off("game-finished");
+      socket.off("player-answered");
+      socket.off("get-ready-question");
     };
   }, [router]);
+
+  const setupTimer = (timeInSeconds: number) => {
+    setProgress(0);
+    const newTimer = setInterval(() => {
+      setProgress((prevProgress) => {
+        if (prevProgress >= 100) {
+          clearInterval(newTimer);
+          return 100;
+        }
+        return prevProgress + 100 / timeInSeconds;
+      });
+    }, 1000);
+
+    setTimer(newTimer);
+  };
 
   const handleResponse = () => {
     if (!alreadyAnswered) {
@@ -59,6 +92,14 @@ const Game = () => {
 
   if (gameisFinished) {
     return <Result result={result} />;
+  }
+
+  if (!ready) {
+    return <GameStartSoon />;
+  }
+
+  if (readyComponent) {
+    return <QuestionStartSoon />;
   }
 
   return (
@@ -81,6 +122,7 @@ const Game = () => {
               ),
             )}
           </div>
+          <Progress value={progress} />
           <Button onClick={handleResponse}>Play</Button>
         </div>
       ) : (
