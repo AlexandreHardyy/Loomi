@@ -31,7 +31,7 @@ const Lobby = () => {
       if (socket.connected && !partyId) {
         socket.emit(
           "create-party",
-          { username: "El Creator" },
+          { username: searchParams.get("username") ?? "El Creator" },
           (response: PartyInterface) => {
             setPartyId(response.partyId);
             setPlayers(response.players);
@@ -67,6 +67,7 @@ const Lobby = () => {
 
     const handleNewMessage = (message: any) => {
       setMessages([...messages, message]);
+      console.log(messages);
     };
 
     socket.on("connect", handleConnectionChange);
