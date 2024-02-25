@@ -23,6 +23,7 @@ const Game = () => {
     socket.on("next-question", (data: any) => {
       setQuestion(data.question);
       setAlreadyAnswered(false);
+      setSelectedResponse([]);
     });
 
     socket.on("game-finished", (data: any) => {

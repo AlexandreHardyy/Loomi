@@ -124,6 +124,7 @@ export class QuizzesGateway
           question: party.getActualQuestion(),
         });
         party.readyPlayers = 0;
+        this.setupTimer(party);
       }
     } else {
       return { status: 'not-found' };
@@ -147,41 +148,47 @@ export class QuizzesGateway
       party.readyPlayers++;
       if (party.readyPlayers === party.players.size) {
         party.incrementQuestion();
-        if (party.actualQuestion === party.quiz.questions.length) {
-          this.server.to(party.id).emit('game-finished', {
-            players: Object.fromEntries(party.players),
-          });
-          return;
-        }
+        if (this.checkIfGameIsFinished(party)) return;
         this.server.to(party.id).emit('next-question', {
           question: party.getActualQuestion(),
         });
         party.readyPlayers = 0;
+        this.setupTimer(party);
       } else {
         this.server.to(party.id).emit('player-answered', {
           totalAnswers: party.readyPlayers,
           totalPlayers: party.players.size,
         });
       }
-      // Check if the player has already answered ----
-      // if (data?.response && party.readyPlayers !== party.players.size) {
-      //   console.log(
-      //     this.checkUserAnswer(party.getActualQuestion().correctResponses, [
-      //       data.response.response,
-      //     ]),
-      //   );
-      //   if (
-      //     this.checkUserAnswer(party.getActualQuestion().correctResponses, [
-      //       data.response.response,
-      //     ])
-      //   ) {
-      //     player?.incrementScore();
-      //   }
-      // }
-      // -------------------------------------------
     } else {
       return { status: 'not-found' };
     }
+  }
+
+  setupTimer(party: Party) {
+    const timer = setTimeout(() => {
+      console.log('Timer finished');
+      party.incrementQuestion();
+      if (this.checkIfGameIsFinished(party)) return;
+      this.server.to(party.id).emit('next-question', {
+        question: party.getActualQuestion(),
+      });
+      party.readyPlayers = 0;
+    }, party.getActualQuestion().timeInSeconds * 1000);
+    // Store the timer in the party object so it can be cleared later
+    party.timer = timer;
+  }
+
+  checkIfGameIsFinished(party: Party) {
+    console.log(party.actualQuestion);
+    if (party.actualQuestion === party.quiz.questions.length) {
+      console.log('Game finished');
+      this.server.to(party.id).emit('game-finished', {
+        players: Object.fromEntries(party.players),
+      });
+      return true;
+    }
+    return false;
   }
 
   checkUserAnswer = (correctAnswers: string[], userAnswers: string[]) => {

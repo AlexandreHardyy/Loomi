@@ -7,6 +7,7 @@ export class Party {
   quiz: any;
   actualQuestion = 0;
   messages = new Map<string, Player>();
+  timer: NodeJS.Timeout | null = null;
 
   constructor() {}
 
