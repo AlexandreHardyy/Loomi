@@ -5,4 +5,5 @@ export interface JoinPartyDataInterface {
 
 export interface CreatePartyDataInterface {
   username: string;
+  quizId: string;
 }

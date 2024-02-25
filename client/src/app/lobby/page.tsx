@@ -1,13 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PartyInterface } from "@/interface/party.interface";
 import socket from "@/lib/socket";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 const Lobby = () => {
   const [isConnected, setIsConnected] = useState(socket.connected);
@@ -15,6 +14,7 @@ const Lobby = () => {
   const [players, setPlayers] = useState([]);
   const [messages, setMessages] = useState<any>([]);
   const [message, setMessage] = useState("");
+  const [maxPlayers, setMaxPlayers] = useState(0);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -31,22 +31,30 @@ const Lobby = () => {
       if (socket.connected && !partyId) {
         socket.emit(
           "create-party",
-          { username: searchParams.get("username") ?? "El Creator" },
+          {
+            username: searchParams.get("username") ?? "El Creator",
+            quizId: searchParams.get("quiz"),
+          },
           (response: PartyInterface) => {
             setPartyId(response.partyId);
             setPlayers(response.players);
+            setMaxPlayers(response.maxPlayers);
           },
         );
       } else if (socket.connected && partyId) {
         socket.emit(
           "join-party",
           { partyId, username: searchParams.get("username") ?? "no-name" },
-          (response: { status: string; partyId: string; players: any }) => {
+          (response: {
+            status: string;
+            partyId: string;
+            players: any;
+            maxPlayers: any;
+          }) => {
             setPlayers(response.players);
+            setMaxPlayers(response.maxPlayers);
           },
         );
-      } else {
-        toast.error("You are not connected to the server");
       }
     };
 
@@ -86,6 +94,8 @@ const Lobby = () => {
     };
   }, [messages, partyId, players, router, searchParams]);
 
+  if (!socket.connected) return <div>Connecting...</div>;
+
   return (
     <div className="m-10 flex gap-4">
       <div className="flex-1 flex flex-col items-center">
@@ -100,6 +110,7 @@ const Lobby = () => {
           <div> {partyId}</div>
         </div>
         <div className="m-10">
+          <div>Max players : {maxPlayers}</div>
           <div className="font-bold mb-3">Players :</div>
           <div className="flex gap-3">
             {Object.values(players).map((player: any) => (
@@ -107,9 +118,6 @@ const Lobby = () => {
                 <CardHeader>
                   <CardTitle>{player.username}</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div>{player.ready ? "Ready" : "Not Ready yet"}</div>
-                </CardContent>
               </Card>
             ))}
           </div>

@@ -31,9 +31,10 @@ const Game = () => {
     setTimeout(() => {
       socket.emit("ready-for-game");
       setReady(true);
-    }, 5000);
+    }, 2000);
 
-    socket.on("get-ready-question", () => {
+    socket.on("get-ready-question", (data: any) => {
+      setResult(data);
       setReadyComponent(true);
     });
 
@@ -109,7 +110,7 @@ const Game = () => {
   }
 
   if (readyComponent) {
-    return <QuestionStartSoon />;
+    return <QuestionStartSoon result={result} />;
   }
 
   return (

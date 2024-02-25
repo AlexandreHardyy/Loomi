@@ -10,6 +10,7 @@ export class Party {
   timer: NodeJS.Timeout | null = null;
   votes = new Map<string, boolean>();
   newTimer: string | null = null;
+  maxPlayers: number = 10;
 
   constructor() {}
 

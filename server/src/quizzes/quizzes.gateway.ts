@@ -60,7 +60,7 @@ export class QuizzesGateway
     @MessageBody() data: CreatePartyDataInterface,
   ) {
     const party = new Party();
-    party.quiz = await this.quizzesService.findOne(1);
+    party.quiz = await this.quizzesService.findOne(Number(data.quizId));
     const player = new Player(data.username, client.id, false, true);
     party.joinTheParty(player);
     client.join(party.id);
@@ -72,6 +72,7 @@ export class QuizzesGateway
       status: 'created',
       partyId: party.id,
       players: Object.fromEntries(party.players),
+      maxPlayers: party.maxPlayers,
     };
   }
 
@@ -86,9 +87,10 @@ export class QuizzesGateway
     if (party) {
       party.joinTheParty(player);
       client.join(party.id);
-      client.broadcast
-        .to(party.id)
-        .emit('player-joined', { players: Object.fromEntries(party.players) });
+      client.broadcast.to(party.id).emit('player-joined', {
+        players: Object.fromEntries(party.players),
+        maxPlayers: party.maxPlayers,
+      });
       this.usersInParties.set(client.id, party.id);
     } else {
       return { status: 'not-found' };
@@ -166,7 +168,6 @@ export class QuizzesGateway
       this.sendNextQuestion(party);
       party.readyPlayers = 0;
     }, party.getActualQuestion().timeInSeconds * 1000);
-    // Store the timer in the party object, so it can be cleared later
     party.timer && clearTimeout(party.timer);
     party.timer = timer;
   }
@@ -194,13 +195,15 @@ export class QuizzesGateway
   };
 
   sendNextQuestion(party: Party) {
-    this.server.to(party.id).emit('get-ready-question');
+    this.server.to(party.id).emit('get-ready-question', {
+      players: Object.fromEntries(party.players),
+    });
     setTimeout(() => {
       this.server.to(party.id).emit('next-question', {
         question: party.getActualQuestion(),
       });
       this.setupTimer(party);
-    }, 2000);
+    }, 5000);
   }
 
   @SubscribeMessage('send-message')
