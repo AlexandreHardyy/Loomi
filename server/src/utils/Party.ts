@@ -3,6 +3,10 @@ import { Player } from './User';
 export class Party {
   id: string = Math.random().toString(36);
   players = new Map<string, Player>();
+  readyPlayers = 0;
+  quiz: any;
+  actualQuestion = 0;
+
   constructor() {}
 
   joinTheParty(player: Player) {
@@ -11,5 +15,13 @@ export class Party {
 
   leaveTheParty(player: Player) {
     this.players.delete(player.id);
+  }
+
+  getActualQuestion() {
+    return this.quiz.questions[this.actualQuestion];
+  }
+
+  incrementQuestion() {
+    this.actualQuestion++;
   }
 }

@@ -14,6 +14,7 @@ import {
   CreatePartyDataInterface,
   JoinPartyDataInterface,
 } from './interface/party.interface';
+import { QuizzesService } from './quizzes.service';
 
 @WebSocketGateway({
   cors: {
@@ -26,7 +27,8 @@ export class QuizzesGateway
 {
   parties = new Map<string, Party>();
   usersInParties = new Map<string, string>();
-  constructor() {}
+
+  constructor(private quizzesService: QuizzesService) {}
 
   @WebSocketServer()
   server: Server;
@@ -53,11 +55,12 @@ export class QuizzesGateway
   }
 
   @SubscribeMessage('create-party')
-  handleCreateParty(
+  async handleCreateParty(
     @ConnectedSocket() client: Socket,
     @MessageBody() data: CreatePartyDataInterface,
   ) {
     const party = new Party();
+    party.quiz = await this.quizzesService.findOne(1);
     const player = new Player(data.username, client.id, false);
     party.joinTheParty(player);
     client.join(party.id);
@@ -96,5 +99,44 @@ export class QuizzesGateway
       partyId: party.id,
       players: Object.fromEntries(party.players),
     };
+  }
+
+  @SubscribeMessage('start-party')
+  handleStartParty(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: any,
+  ) {
+    const party = this.parties.get(data.partyId);
+    if (party) {
+      this.server.to(party.id).emit('party-started', { partyId: party.id });
+    } else {
+      return { status: 'not-found' };
+    }
+  }
+
+  @SubscribeMessage('ready-to-play')
+  handleReadyForGame(@ConnectedSocket() client: Socket) {
+    const party = this.parties.get(this.usersInParties.get(client.id) ?? '');
+    if (party) {
+      party.readyPlayers++;
+      if (party.readyPlayers === party.players.size) {
+        if (party.actualQuestion === party.quiz.questions.length) {
+          this.server.to(party.id).emit('game-finished');
+          return;
+        }
+        this.server.to(party.id).emit('next-question', {
+          question: party.getActualQuestion(),
+        });
+        party.readyPlayers = 0;
+        party.incrementQuestion();
+      } else {
+        this.server.to(party.id).emit('player-answered', {
+          totalAnswers: party.readyPlayers,
+          totalPlayers: party.players.size,
+        });
+      }
+    } else {
+      return { status: 'not-found' };
+    }
   }
 }

@@ -21,6 +21,8 @@ const Lobby = () => {
   }, [searchParams]);
 
   useEffect(() => {
+    socket.connect();
+
     const handleConnectionChange = () => {
       setIsConnected(socket.connected);
       if (socket.connected && !partyId) {
@@ -56,18 +58,24 @@ const Lobby = () => {
       });
     };
 
+    const handlePartyStarted = () => {
+      router.push("/game");
+    };
+
     socket.on("connect", handleConnectionChange);
     socket.on("disconnect", handleConnectionChange);
     socket.on("player-joined", handlePlayerJoined);
     socket.on("player-left", handlePlayerLeft);
+    socket.on("party-started", handlePartyStarted);
 
     return () => {
       socket.off("connect", handleConnectionChange);
       socket.off("disconnect", handleConnectionChange);
       socket.off("player-joined", handlePlayerJoined);
       socket.off("player-left", handlePlayerLeft);
+      socket.off("party-started", handlePartyStarted);
     };
-  }, [partyId, players, searchParams]);
+  }, [partyId, players, router, searchParams]);
 
   return (
     <div className="m-10 flex flex-col items-center">
@@ -93,7 +101,9 @@ const Lobby = () => {
         </div>
       </div>
       <div className="flex flex-col gap-3">
-        <Button onClick={() => socket.emit("start-game")}>
+        <Button
+          onClick={() => socket.emit("start-party", { partyId: partyId })}
+        >
           Start the party
         </Button>
         <Button
