@@ -67,7 +67,6 @@ const Lobby = () => {
 
     const handleNewMessage = (message: any) => {
       setMessages([...messages, message]);
-      console.log(messages);
     };
 
     socket.on("connect", handleConnectionChange);
