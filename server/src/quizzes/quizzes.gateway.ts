@@ -166,7 +166,7 @@ export class QuizzesGateway
       this.sendNextQuestion(party);
       party.readyPlayers = 0;
     }, party.getActualQuestion().timeInSeconds * 1000);
-    // Store the timer in the party object so it can be cleared later
+    // Store the timer in the party object, so it can be cleared later
     party.timer && clearTimeout(party.timer);
     party.timer = timer;
   }
