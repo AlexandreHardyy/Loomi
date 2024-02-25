@@ -114,31 +114,87 @@ export class QuizzesGateway
     }
   }
 
-  @SubscribeMessage('ready-to-play')
+  @SubscribeMessage('ready-for-game')
   handleReadyForGame(@ConnectedSocket() client: Socket) {
     const party = this.parties.get(this.usersInParties.get(client.id) ?? '');
     if (party) {
+      party.readyPlayers += 1;
+      if (party.players.size === party.readyPlayers) {
+        this.server.to(party.id).emit('next-question', {
+          question: party.getActualQuestion(),
+        });
+        party.readyPlayers = 0;
+      }
+    } else {
+      return { status: 'not-found' };
+    }
+  }
+
+  @SubscribeMessage('play')
+  handlePlay(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const party = this.parties.get(this.usersInParties.get(client.id) ?? '');
+    if (party) {
+      const player = party.players.get(client.id);
+      if (player) {
+        if (
+          this.checkUserAnswer(
+            party.getActualQuestion().correctResponses,
+            data.response,
+          )
+        )
+          player.incrementScore();
+      }
       party.readyPlayers++;
       if (party.readyPlayers === party.players.size) {
+        party.incrementQuestion();
         if (party.actualQuestion === party.quiz.questions.length) {
-          this.server.to(party.id).emit('game-finished');
+          this.server.to(party.id).emit('game-finished', {
+            players: Object.fromEntries(party.players),
+          });
           return;
         }
         this.server.to(party.id).emit('next-question', {
           question: party.getActualQuestion(),
         });
         party.readyPlayers = 0;
-        party.incrementQuestion();
       } else {
         this.server.to(party.id).emit('player-answered', {
           totalAnswers: party.readyPlayers,
           totalPlayers: party.players.size,
         });
       }
+      // Check if the player has already answered ----
+      // if (data?.response && party.readyPlayers !== party.players.size) {
+      //   console.log(
+      //     this.checkUserAnswer(party.getActualQuestion().correctResponses, [
+      //       data.response.response,
+      //     ]),
+      //   );
+      //   if (
+      //     this.checkUserAnswer(party.getActualQuestion().correctResponses, [
+      //       data.response.response,
+      //     ])
+      //   ) {
+      //     player?.incrementScore();
+      //   }
+      // }
+      // -------------------------------------------
     } else {
       return { status: 'not-found' };
     }
   }
+
+  checkUserAnswer = (correctAnswers: string[], userAnswers: string[]) => {
+    if (userAnswers.length !== correctAnswers.length) {
+      return false;
+    }
+    for (let i = 0; i < correctAnswers.length; i++) {
+      if (userAnswers[i] !== correctAnswers[i]) {
+        return false;
+      }
+    }
+    return true;
+  };
 
   @SubscribeMessage('send-message')
   handleMessage(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
