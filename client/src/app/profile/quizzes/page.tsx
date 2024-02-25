@@ -10,6 +10,7 @@ import {
 import { QuizInterface } from "@/interface/quiz.interface";
 import axios from "axios";
 import Link from "next/link";
+import DeleteQuizButton from "@/components/quiz/DeleteQuizButton";
 
 const Page = async () => {
   const quizzes = await axios.get("http://localhost:3000/quizzes");
@@ -18,7 +19,7 @@ const Page = async () => {
 
   return (
     <div className={"flex flex-col gap-3 m-10"}>
-      <h1 className={"text-3xl font-bold"}>My Quizzles</h1>
+      <h1 className={"text-3xl font-bold"}>My Quizzes</h1>
       <div>
         <Button asChild>
           <Link href={"/profile/quizzes/new-quiz"}>Create new quiz</Link>
@@ -32,8 +33,13 @@ const Page = async () => {
           </CardHeader>
           <CardContent>
             <div className={"flex gap-2"}>
-              <div className={"flex flex-col gap-2"}>
+              <div className={"flex items-center gap-2"}>
                 <div>Questions: {quiz.questions.length}</div>
+                <Button asChild>
+                  <Link href={`/profile/quizzes/new-question/${quiz.id}`}>
+                    Add Question
+                  </Link>
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -42,8 +48,12 @@ const Page = async () => {
               <Button asChild>
                 <Link href={"/lobby"}>Start</Link>
               </Button>
-              <Button>Edit</Button>
-              <Button variant={"destructive"}>Delete</Button>
+              <Button asChild>
+                <Link href={`/profile/quizzes/edit-questions/${quiz.id}`}>
+                  Edit
+                </Link>
+              </Button>
+              <DeleteQuizButton QuizId={quiz.id} QuizName={quiz.name} />
             </div>
           </CardFooter>
         </Card>
