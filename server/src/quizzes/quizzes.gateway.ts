@@ -120,11 +120,8 @@ export class QuizzesGateway
     if (party) {
       party.readyPlayers += 1;
       if (party.players.size === party.readyPlayers) {
-        this.server.to(party.id).emit('next-question', {
-          question: party.getActualQuestion(),
-        });
+        this.sendNextQuestion(party);
         party.readyPlayers = 0;
-        this.setupTimer(party);
       }
     } else {
       return { status: 'not-found' };
@@ -149,11 +146,8 @@ export class QuizzesGateway
       if (party.readyPlayers === party.players.size) {
         party.incrementQuestion();
         if (this.checkIfGameIsFinished(party)) return;
-        this.server.to(party.id).emit('next-question', {
-          question: party.getActualQuestion(),
-        });
+        this.sendNextQuestion(party);
         party.readyPlayers = 0;
-        this.setupTimer(party);
       } else {
         this.server.to(party.id).emit('player-answered', {
           totalAnswers: party.readyPlayers,
@@ -167,22 +161,18 @@ export class QuizzesGateway
 
   setupTimer(party: Party) {
     const timer = setTimeout(() => {
-      console.log('Timer finished');
       party.incrementQuestion();
       if (this.checkIfGameIsFinished(party)) return;
-      this.server.to(party.id).emit('next-question', {
-        question: party.getActualQuestion(),
-      });
+      this.sendNextQuestion(party);
       party.readyPlayers = 0;
     }, party.getActualQuestion().timeInSeconds * 1000);
     // Store the timer in the party object so it can be cleared later
+    party.timer && clearTimeout(party.timer);
     party.timer = timer;
   }
 
   checkIfGameIsFinished(party: Party) {
-    console.log(party.actualQuestion);
     if (party.actualQuestion === party.quiz.questions.length) {
-      console.log('Game finished');
       this.server.to(party.id).emit('game-finished', {
         players: Object.fromEntries(party.players),
       });
@@ -202,6 +192,16 @@ export class QuizzesGateway
     }
     return true;
   };
+
+  sendNextQuestion(party: Party) {
+    this.server.to(party.id).emit('get-ready-question');
+    setTimeout(() => {
+      this.server.to(party.id).emit('next-question', {
+        question: party.getActualQuestion(),
+      });
+      this.setupTimer(party);
+    }, 2000);
+  }
 
   @SubscribeMessage('send-message')
   handleMessage(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
