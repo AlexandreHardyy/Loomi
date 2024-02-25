@@ -10,12 +10,12 @@ const JoinLobby: React.FC = () => {
   const [username, setUsername] = useState("");
 
   return (
-    <div>
+    <div className="m-10 flex flex-col items-center gap-3">
       <Input
         type="text"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Enter search term"
+        placeholder="Enter the party Id"
       />
       <Input
         type="text"

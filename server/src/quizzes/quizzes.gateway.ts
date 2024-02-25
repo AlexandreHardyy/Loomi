@@ -139,4 +139,33 @@ export class QuizzesGateway
       return { status: 'not-found' };
     }
   }
+
+  @SubscribeMessage('send-message')
+  handleMessage(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const party = this.parties.get(this.usersInParties.get(client.id) ?? '');
+    if (party) {
+      const player = party.players.get(client.id);
+      if (player) {
+        party.messages.set(data.message, player);
+        this.server.to(party.id).emit('new-message', {
+          player,
+          message: data.message,
+        });
+      }
+    } else {
+      return { status: 'not-found' };
+    }
+  }
+
+  @SubscribeMessage('all-messages')
+  handleAllMessages(@ConnectedSocket() client: Socket) {
+    const party = this.parties.get(this.usersInParties.get(client.id) ?? '');
+    if (party) {
+      return {
+        messages: Object.fromEntries(party.messages),
+      };
+    } else {
+      return { status: 'not-found' };
+    }
+  }
 }
