@@ -6,6 +6,7 @@ export class Party {
   readyPlayers = 0;
   quiz: any;
   actualQuestion = 0;
+  messages = new Map<string, Player>();
 
   constructor() {}
 
