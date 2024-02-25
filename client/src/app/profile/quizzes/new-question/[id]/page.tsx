@@ -54,7 +54,7 @@ const Page = () => {
       values.correctResponses = values.correctResponses.filter(
         (response) => response !== "",
       );
-      values.timeInSeconds = parseInt(values.timeInSeconds);
+      values.timeInSeconds = parseInt(values.timeInSeconds as any);
       await axios.post(
         `http://localhost:3000/quizzes/${params.id}/questions`,
         values,
